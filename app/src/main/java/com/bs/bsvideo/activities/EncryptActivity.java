@@ -1,0 +1,202 @@
+package com.bs.bsvideo.activities;
+
+import android.content.ContentUris;
+import android.content.Context;
+import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.provider.MediaStore;
+import android.provider.OpenableColumns;
+import android.util.Size;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.BaseAdapter;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.TextView;
+
+import androidx.activity.EdgeToEdge;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+
+import com.bs.bsvideo.R;
+import com.bs.bsvideo.models.DecisionItem;
+import com.bs.bsvideo.models.VideoItem;
+import com.bs.bsvideo.utils.CallbackList;
+import com.bs.bsvideo.utils.FileSizeUtil;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class EncryptActivity extends AppCompatActivity {
+
+    CallbackList<VideoItem> fileList = new CallbackList<>();
+
+    CallbackList.Callback<VideoItem> listCallback = new CallbackList.Callback<VideoItem>() {
+
+        public void change() {
+            ListView fileListView = findViewById(R.id.fileList);
+            BaseAdapter baseAdapter = (BaseAdapter) fileListView.getAdapter();
+            baseAdapter.notifyDataSetChanged();
+        }
+
+        @Override
+        public void onAdd(VideoItem videoItem) {
+            change();
+        }
+
+        @Override
+        public void onRemove(VideoItem videoItem) {
+            change();
+        }
+    };
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_encrypt);
+
+        fileList.addCallback(listCallback);
+
+        setAddButton(R.id.addButton);
+        setFileList(R.id.fileList);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        fileList.removeCallback(listCallback);
+    }
+
+    private void setAddButton(int addButtonId) {
+        FloatingActionButton addButton = findViewById(addButtonId);
+        addButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.setType("video/*"); // only show videos
+                startActivityForResult(intent, 101);
+            }
+        });
+    }
+
+    private void setFileList(int fileListId) {
+        LayoutInflater layoutInflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+        ListView fileListView = findViewById(fileListId);
+        if (fileListView != null) {
+            fileListView.setAdapter(new BaseAdapter() {
+                @Override
+                public int getCount() {
+                    return fileList.size();
+                }
+
+                @Override
+                public Object getItem(int i) {
+                    return fileList.get(i);
+                }
+
+                @Override
+                public long getItemId(int i) {
+                    return i;
+                }
+
+                @Override
+                public View getView(int i, View view, ViewGroup viewGroup) {
+                    VideoItem videoItem = fileList.get(i);
+
+                    View videoItemLayout = layoutInflater.inflate(R.layout.videoitem_layout, null);
+                    ImageView thumbnail = videoItemLayout.findViewById(R.id.thumbnail);
+                    try {
+                        thumbnail.setImageBitmap(getThumbnail(videoItem.getContentUri()));
+                    } catch (Exception ignored) {
+
+                    }
+
+                    TextView filename = videoItemLayout.findViewById(R.id.filename);
+                    filename.setText(videoItem.getFileName());
+
+                    TextView subTitle = videoItemLayout.findViewById(R.id.description);
+                    subTitle.setText(FileSizeUtil.getSize(videoItem.getFileSize()));
+
+                    return videoItemLayout;
+                }
+            });
+            fileListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                    System.out.println(i);
+                }
+            });
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == 101 && resultCode == RESULT_OK && data != null) {
+            Uri videoUri = data.getData();
+            try (Cursor cursor = this.getContentResolver().query(
+                    videoUri,
+                    new String[]{
+                            OpenableColumns.DISPLAY_NAME,
+                            OpenableColumns.SIZE
+                    },
+                    null,
+                    null,
+                    null
+            )) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    String fileName = cursor.getString(nameIndex);
+
+                    int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
+                    long fileSize = cursor.getLong(sizeIndex);
+
+                    fileList.add(VideoItem
+                            .builder()
+                            .fileName(fileName)
+                            .fileSize(fileSize)
+                            .contentUri(videoUri)
+                            .build()
+                    );
+
+                }
+            } catch (Exception e) {
+
+            }
+        }
+    }
+
+    public Bitmap getThumbnail(Uri uri) throws IOException {
+        Bitmap thumbnail = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            thumbnail = getContentResolver().loadThumbnail(uri, new Size(200, 200), null);
+        } else {
+            long id = ContentUris.parseId(uri);
+            if (uri.toString().contains("video")) {
+                thumbnail = MediaStore.Video.Thumbnails.getThumbnail(
+                        getContentResolver(),
+                        id,
+                        MediaStore.Video.Thumbnails.MINI_KIND,
+                        null
+                );
+            }
+        }
+        return thumbnail;
+    }
+}
