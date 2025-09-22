@@ -1,13 +1,16 @@
 package com.bs.bsvideo.activities;
 
+import android.content.ComponentName;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.util.Size;
@@ -30,6 +33,7 @@ import androidx.core.view.WindowInsetsCompat;
 import com.bs.bsvideo.R;
 import com.bs.bsvideo.models.DecisionItem;
 import com.bs.bsvideo.models.VideoItem;
+import com.bs.bsvideo.services.CryptoService;
 import com.bs.bsvideo.utils.CallbackList;
 import com.bs.bsvideo.utils.FileSizeUtil;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -49,6 +53,15 @@ public class EncryptActivity extends AppCompatActivity {
             ListView fileListView = findViewById(R.id.fileList);
             BaseAdapter baseAdapter = (BaseAdapter) fileListView.getAdapter();
             baseAdapter.notifyDataSetChanged();
+            FloatingActionButton addButton = findViewById(R.id.addButton);
+            FloatingActionButton startButton = findViewById(R.id.startButton);
+            if (fileList.isEmpty()) {
+                addButton.setVisibility(View.VISIBLE);
+                startButton.setVisibility(View.INVISIBLE);
+            } else {
+                addButton.setVisibility(View.INVISIBLE);
+                startButton.setVisibility(View.VISIBLE);
+            }
         }
 
         @Override
@@ -62,6 +75,20 @@ public class EncryptActivity extends AppCompatActivity {
         }
     };
 
+    ServiceConnection connection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            CryptoService.LocalBinder binder = (CryptoService.LocalBinder) service;
+            CryptoService taskService = binder.getService();
+            taskService.runEncryption(fileList);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -70,6 +97,7 @@ public class EncryptActivity extends AppCompatActivity {
         fileList.addCallback(listCallback);
 
         setAddButton(R.id.addButton);
+        setStartButton(R.id.startButton);
         setFileList(R.id.fileList);
     }
 
@@ -89,6 +117,17 @@ public class EncryptActivity extends AppCompatActivity {
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 intent.setType("video/*"); // only show videos
                 startActivityForResult(intent, 101);
+            }
+        });
+    }
+
+    private void setStartButton(int startButtonId) {
+        FloatingActionButton startButton = findViewById(startButtonId);
+        startButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(EncryptActivity.this, CryptoService.class);
+                bindService(intent, connection, Context.BIND_AUTO_CREATE);
             }
         });
     }
