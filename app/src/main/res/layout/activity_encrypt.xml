@@ -5,12 +5,52 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
 >
-    <ListView
-        android:id="@+id/fileList"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-    >
-    </ListView>
+        android:layout_height="match_parent">
+
+        <ListView
+            android:id="@+id/fileList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+
+        <LinearLayout
+            android:id="@+id/emptyView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="vertical"
+            >
+            <LinearLayout
+                xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="vertical"
+                >
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    >
+                </ImageView>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAlignment="center"
+                    android:text="Empty List"
+                    >
+                </TextView>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAlignment="center"
+                    android:text="Click add button to add item"
+                    >
+                </TextView>
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:visibility="visible"
         android:id="@+id/addButton"
@@ -28,6 +68,17 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@android:drawable/ic_lock_lock"
+        app:layout_anchorGravity="bottom|end"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        >
+    </com.google.android.material.floatingactionbutton.FloatingActionButton>
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:visibility="invisible"
+        android:id="@+id/goBackButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@android:drawable/ic_delete"
         app:layout_anchorGravity="bottom|end"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
