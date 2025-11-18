@@ -31,6 +31,11 @@ android {
     buildFeatures {
         compose true
     }
+    sourceSets {
+        main {
+            resources.srcDirs += 'src/main/resources'
+        }
+    }
 }
 
 dependencies {
@@ -67,4 +72,9 @@ dependencies {
 
     compileOnly 'org.projectlombok:lombok:1.18.34'
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
+
+
+    implementation("org.mp4parser:isoparser:1.9.41")
+    implementation 'org.mp4parser:muxer:1.9.41'
+
 }
